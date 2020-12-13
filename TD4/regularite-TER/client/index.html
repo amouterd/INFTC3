@@ -10,6 +10,7 @@
 
 <style>
 #map { height: 400px; width: 400px; float:left; margin-left:20px; margin-right:20px;}
+#reponse img { width: calc(100% - 460px); }
 </style>
 
 <body onload="load_data()">  <!-- Récupération des données avec le chargement de la page -->
@@ -22,7 +23,7 @@
 
 <div id="reponse">
   <p align="center"></p>
-  <img width="70%" src="" />
+  <img src="" />
 </div>
 <div>
 </div>
@@ -55,15 +56,16 @@ function load_data () {
 }
 
 function OnMarkerClick (e) {
-    var xhr = new XMLHttpRequest();
-	var image =  document.querySelector('#reponse img'),
-        legende = document.querySelector('#reponse p');
-	xhr.onload = function() {   // fonction callback
-      var data = JSON.parse(this.responseText)
+    var xhr = new XMLHttpRequest(),
+      image =  document.querySelector('#reponse img'),
+      legende = document.querySelector('#reponse p');
+    xhr.onload = function() {   // fonction callback
+      var data = JSON.parse(this.responseText);
+
       image.src = data.img;
       image.alt = data.title;
       legende.innerHTML = data.title;
-      };
+    };
     xhr.open('GET','/ponctualite/'+e.target.idreg,true);  // on récupère la courbe par un appel au serveur
     xhr.send();
 }
