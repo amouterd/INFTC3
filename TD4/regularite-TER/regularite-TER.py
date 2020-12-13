@@ -140,7 +140,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         # Definition des régions et des couleurs de tracé
         regions = [("Rhône Alpes","blue"), ("Auvergne","green"), ("Auvergne-Rhône Alpes","cyan"), ('Bourgogne',"red"), 
                    ('Franche Comté','orange'), ('Bourgogne-Franche Comté','olive') ]
+        graphique = 'regions'
     else:
+        graphique = self.path_info[1]
         # On teste que la région demandée existe bien
         c.execute("SELECT DISTINCT Région FROM 'regularite-mensuelle-ter'")
         reg = c.fetchall()
@@ -180,13 +182,13 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
     plt.title('Régularité des TER (en %)',fontsize=16)
 
     # génération des courbes dans un fichier PNG
-    fichier = 'courbes/ponctualite_'+self.path_info[1] +'.png'
+    fichier = 'courbes/ponctualite_'+ graphique +'.png'
     plt.savefig('client/{}'.format(fichier))
     plt.close()
     
     #html = '<img src="/{}?{}" alt="ponctualite {}" width="100%">'.format(fichier,self.date_time_string(),self.path)
     body = json.dumps({
-            'title': 'Régularité TER '+self.path_info[1], \
+            'title': 'Régularité TER '+graphique, \
             'img': '/'+fichier \
              });
     # on envoie
