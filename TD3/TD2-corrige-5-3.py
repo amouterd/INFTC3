@@ -69,7 +69,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
   def init_params(self):
     # analyse de l'adresse
     info = urlparse(self.path)
-    self.path_info = [unquote(v) for v in info.path.split('/')[1:]]  # info.path.split('/')[1:]
+    self.path_info = [unquote(v) for v in info.path.split('/')[1:]]
     self.query_string = info.query
     self.params = parse_qs(info.query)
 
@@ -110,11 +110,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
     self.send(body,headers)
 
   #
-  # On génère et on renvoie un graphique de ponctualite (cf. TD1)
+  # On envoie la liste des régions
   #
   def send_regions(self):
 
-    conn = sqlite3.connect('ter.sqlite')
+    # création du curseur (la connexion a été créée par le programme principal)
     c = conn.cursor()
     
     # votre code ici
@@ -133,23 +133,31 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
   #
   def send_ponctualite(self):
 
-    conn = sqlite3.connect('ter.sqlite')
+    # création du curseur (la connexion a été créée par le programme principal)
     c = conn.cursor()
     
-    if len(self.path_info) <= 1 :   # pas de paramètre => liste par défaut
+    # pas de paramètre => liste par défaut
+    if len(self.path_info) <= 1 :
         # Definition des régions et des couleurs de tracé
         regions = [("Rhône Alpes","blue"), ("Auvergne","green"), ("Auvergne-Rhône Alpes","cyan"), ('Bourgogne',"red"), 
                    ('Franche Comté','orange'), ('Bourgogne-Franche Comté','olive') ]
+        title = 'Régularité des TER (en %)'
     else:
         # On teste que la région demandée existe bien
         c.execute("SELECT DISTINCT Région FROM 'regularite-mensuelle-ter'")
         reg = c.fetchall()
-        if (self.path_info[1],) in reg:   # Rq: reg est une liste de tuples
+
+        # Rq: reg est une liste de tuples
+        if (self.path_info[1],) in reg:
           regions = [(self.path_info[1],"blue")]
+          title = 'Régularité des TER en région {} (en %)'.format(self.path_info[1])
+
+        # Région non trouvée -> erreur 404
         else:
             print ('Erreur nom')
-            self.send_error(404)    # Région non trouvée -> erreur 404
+            self.send_error(404)
             return None
+
     
     # configuration du tracé
     fig1 = plt.figure(figsize=(18,6))
@@ -168,23 +176,26 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
     for l in (regions) :
         c.execute("SELECT * FROM 'regularite-mensuelle-ter' WHERE Région=? ORDER BY Date",l[:1])  # ou (l[0],)
         r = c.fetchall()
+
         # recupération de la date (colonne 2) et transformation dans le format de pyplot
         x = [pltd.date2num(dt.date(int(a[1][:4]),int(a[1][5:]),1)) for a in r if not a[7] == '']
+
         # récupération de la régularité (colonne 8)
         y = [float(a[7]) for a in r if not a[7] == '']
+
         # tracé de la courbe
         plt.plot_date(x,y,linewidth=1, linestyle='-', marker='o', color=l[1], label=l[0])
         
     # légendes
     plt.legend(loc='lower left')
-    plt.title('Régularité des TER (en %)',fontsize=16)
+    plt.title(title,fontsize=16)
 
     # génération des courbes dans un fichier PNG
     fichier = 'courbe_ponctualite.png'
     plt.savefig('client/{}'.format(fichier))
 
+    # on envoie le code HTML de la balise img
     html = '<img src="/{}?{}" alt="ponctualite {}" width="100%">'.format(fichier,self.date_time_string(),self.path)
-
     headers = [('Content-Type','text/html;charset=utf-8')]
     self.send(html,headers)
 
@@ -208,6 +219,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
     self.wfile.write(encoded)
 
  
+#
+# Création de la connexion avec la base de données
+#
+conn = sqlite3.connect('ter.sqlite')
+
 #
 # Instanciation et lancement du serveur
 #
